@@ -65,6 +65,22 @@ app.get('/counters', (req, res) => {
     })
 })
 
+app.get('/lastDate', (req, res) => {
+  const db = client.db('football-dashboard')
+  db.collection('Counters')
+    .find({})
+    .sort({ _id: -1 })
+    .limit(parseInt(1))
+    .toArray((err, result) => {
+      if (err) {
+        console.log(err)
+        throw err
+      }
+
+      res.send(result[0].date)
+    })
+})
+
 app.get('*', (req, res) => {
   res.status(404)
   res.send('Error  404 Not Found')
