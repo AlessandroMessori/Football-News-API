@@ -35,8 +35,19 @@ app.get('/', (req, res) => {
 
 app.get('/topics', (req, res) => {
   const db = client.db('football-dashboard')
+  const { name, category } = req.query
+  const query = {}
+
+  if (name !== undefined) {
+    query.name = { $regex: name }
+  }
+
+  if (category !== undefined) {
+    query.category = { $regex: category }
+  }
+
   db.collection('Topics')
-    .find({ category: req.query.category })
+    .find({ ...query })
     .limit(parseInt(req.query.limit))
     .toArray((err, result) => {
       if (err) {
@@ -101,5 +112,22 @@ async function run () {
     console.log(e)
   }
 }
+
+app.get('/mostGained', (req, res) => {
+  const db = client.db('football-dashboard')
+  db.collection('Counters')
+    .find({
+      ...req.query
+    })
+    .limit(parseInt(req.query.limit))
+    .toArray((err, result) => {
+      if (err) {
+        console.log(err)
+        throw err
+      }
+
+      res.send(result)
+    })
+})
 
 run().catch(console.dir)
