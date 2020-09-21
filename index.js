@@ -16,6 +16,18 @@ const uri =
 // Create a new MongoClient
 const client = new MongoClient(uri)
 
+const formatDate = date => {
+  const d = new Date(date)
+  let month = '' + (d.getMonth() + 1)
+  let day = '' + d.getDate()
+  const year = d.getFullYear()
+
+  if (month.length < 2) month = '0' + month
+  if (day.length < 2) day = '0' + day
+
+  return [year, month, day].join('-')
+}
+
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
 
@@ -92,6 +104,68 @@ app.get('/lastDate', (req, res) => {
     })
 })
 
+app.get('/mostGained', (req, res) => {
+  const db = client.db('football-dashboard')
+  db.collection('Counters')
+    .find({})
+    .sort({ _id: -1 })
+    .limit(parseInt(1))
+    .toArray((err, result) => {
+      if (err) {
+        console.log(err)
+        throw err
+      }
+
+      const lastDate = new Date(result[0].date)
+      const previousDate = new Date(result[0].date)
+      previousDate.setDate(lastDate.getDate() - 1)
+
+      //MODIFY
+      db.collection('Counters').aggregate(
+        [
+          {
+            $match: {
+              date: { $in: [formatDate(lastDate), formatDate(previousDate)] }
+            }
+          },
+          {
+            $group: {
+              _id: '$name',
+              dates: { $push: '$date' },
+              counts: { $push: '$count' }
+            }
+          }
+        ],
+        (err, docs) => {
+          if (err) console.log(err)
+
+          docs.toArray((err, result) => {
+            if (err) {
+              console.log(err)
+              throw err
+            }
+
+            let mostGained = result.map(item => {
+              let delta = 0
+
+              item.counts.forEach((count, i) => {
+                const gain =
+                  item.dates[i] === formatDate(lastDate) ? count : -count
+                delta += gain
+              })
+
+              return { name: item._id, delta }
+            })
+
+            mostGained = mostGained.sort((a, b) => a.delta - b.delta)
+
+            res.send(mostGained)
+          })
+        }
+      )
+    })
+})
+
 app.get('*', (req, res) => {
   res.status(404)
   res.send('Error  404 Not Found')
@@ -112,22 +186,5 @@ async function run () {
     console.log(e)
   }
 }
-
-app.get('/mostGained', (req, res) => {
-  const db = client.db('football-dashboard')
-  db.collection('Counters')
-    .find({
-      ...req.query
-    })
-    .limit(parseInt(req.query.limit))
-    .toArray((err, result) => {
-      if (err) {
-        console.log(err)
-        throw err
-      }
-
-      res.send(result)
-    })
-})
 
 run().catch(console.dir)
