@@ -92,7 +92,6 @@ app.get('/mostGained', (req, res) => {
       const previousDate = new Date(date)
       previousDate.setDate(lastDate.getDate() - 1)
 
-      //MODIFY
       db.collection('Counters').aggregate(
         [
           {
