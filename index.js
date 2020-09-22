@@ -3,6 +3,7 @@ const app = express()
 const port = process.env.PORT || 8100
 const bodyParser = require('body-parser')
 const { MongoClient } = require('mongodb')
+const { formatDate, getLastDate, getMostGained } = require('./src/helpers')
 const { username, password } = require('./cred.json')
 
 // Connection URI
@@ -15,18 +16,6 @@ const uri =
 
 // Create a new MongoClient
 const client = new MongoClient(uri)
-
-const formatDate = date => {
-  const d = new Date(date)
-  let month = '' + (d.getMonth() + 1)
-  let day = '' + d.getDate()
-  const year = d.getFullYear()
-
-  if (month.length < 2) month = '0' + month
-  if (day.length < 2) day = '0' + day
-
-  return [year, month, day].join('-')
-}
 
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
@@ -90,34 +79,17 @@ app.get('/counters', (req, res) => {
 
 app.get('/lastDate', (req, res) => {
   const db = client.db('football-dashboard')
-  db.collection('Counters')
-    .find({})
-    .sort({ _id: -1 })
-    .limit(parseInt(1))
-    .toArray((err, result) => {
-      if (err) {
-        console.log(err)
-        throw err
-      }
-
-      res.send(result[0].date)
-    })
+  getLastDate(client)
+    .then(result => res.send(result))
+    .catch(err => console.log(err))
 })
 
 app.get('/mostGained', (req, res) => {
   const db = client.db('football-dashboard')
-  db.collection('Counters')
-    .find({})
-    .sort({ _id: -1 })
-    .limit(parseInt(1))
-    .toArray((err, result) => {
-      if (err) {
-        console.log(err)
-        throw err
-      }
-
-      const lastDate = new Date(result[0].date)
-      const previousDate = new Date(result[0].date)
+  getLastDate(client)
+    .then(date => {
+      const lastDate = new Date(date)
+      const previousDate = new Date(date)
       previousDate.setDate(lastDate.getDate() - 1)
 
       //MODIFY
@@ -139,31 +111,17 @@ app.get('/mostGained', (req, res) => {
         (err, docs) => {
           if (err) console.log(err)
 
-          docs.toArray((err, result) => {
-            if (err) {
-              console.log(err)
-              throw err
-            }
+          getMostGained(docs, lastDate)
+            .then(mostGained => {
+              const sortedGainers = mostGained.sort((a, b) => a.delta - b.delta)
 
-            let mostGained = result.map(item => {
-              let delta = 0
-
-              item.counts.forEach((count, i) => {
-                const gain =
-                  item.dates[i] === formatDate(lastDate) ? count : -count
-                delta += gain
-              })
-
-              return { name: item._id, delta }
+              res.send(sortedGainers)
             })
-
-            mostGained = mostGained.sort((a, b) => a.delta - b.delta)
-
-            res.send(mostGained)
-          })
+            .catch(err => console.log(err))
         }
       )
     })
+    .catch(err => console.log(err))
 })
 
 app.get('*', (req, res) => {
