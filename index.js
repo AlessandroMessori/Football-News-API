@@ -77,8 +77,42 @@ app.get('/counters', (req, res) => {
     })
 })
 
-app.get('/lastDate', (req, res) => {
+app.get('/counters/:name', (req, res) => {
   const db = client.db('football-dashboard')
+  const { name } = req.params
+
+  db.collection('Counters').aggregate(
+    [
+      {
+        $match: {
+          name
+        }
+      },
+      {
+        $group: {
+          _id: '$date',
+          count: { $sum: '$count' }
+        }
+      }
+    ],
+    (err, docs) => {
+      if (err) console.log(err)
+
+      docs.toArray((err, result) => {
+        if (err) console.log(err)
+
+        const response = {
+          name,
+          counts: result
+        }
+
+        res.send(response)
+      })
+    }
+  )
+})
+
+app.get('/lastDate', (req, res) => {
   getLastDate(client)
     .then(result => res.send(result))
     .catch(err => console.log(err))
