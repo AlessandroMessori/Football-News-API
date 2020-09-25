@@ -157,6 +157,55 @@ app.get('/mostGained', (req, res) => {
     .catch(err => console.log(err))
 })
 
+app.get('/newComers', (req, res) => {
+  const db = client.db('football-dashboard')
+  getLastDate(client)
+    .then(date => {
+      const lastDate = new Date(date)
+      const previousDate = new Date(date)
+      previousDate.setDate(lastDate.getDate() - 1)
+
+      db.collection('Counters').aggregate(
+        [
+          {
+            $match: {
+              date: { $in: [formatDate(lastDate), formatDate(previousDate)] }
+            }
+          },
+          {
+            $group: {
+              _id: '$name',
+              dates: { $push: '$date' },
+              counts: { $push: '$count' }
+            }
+          }
+        ],
+        (err, docs) => {
+          if (err) console.log(err)
+
+          docs.toArray((err2, result) => {
+            if (err2) console.log(err)
+
+            const newComers = result
+              .filter(
+                item =>
+                  item.dates.includes(formatDate(lastDate)) &&
+                  !item.dates.includes(formatDate(previousDate))
+              )
+              .map(({ _id, counts }) => ({
+                name: _id,
+                count: counts.reduce((acc, val) => acc + val, 0)
+              }))
+              .sort((a, b) => b.count - a.count)
+
+            res.send(newComers)
+          })
+        }
+      )
+    })
+    .catch(err => console.log(err))
+})
+
 app.get('*', (req, res) => {
   res.status(404)
   res.send('Error  404 Not Found')
