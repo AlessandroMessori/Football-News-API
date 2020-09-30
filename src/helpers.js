@@ -41,7 +41,7 @@ const getMostGained = (docs, lastDate) =>
           delta += gain
         })
 
-        return { name: item._id, delta }
+        return { name: item._id, delta, category: item.categories[0] }
       })
       resolve(mostGained)
     })

@@ -144,7 +144,8 @@ app.get('/mostGained', (req, res) => {
             $group: {
               _id: '$name',
               dates: { $push: '$date' },
-              counts: { $push: '$count' }
+              counts: { $push: '$count' },
+              categories: { $push: '$category' }
             }
           }
         ],
@@ -189,7 +190,8 @@ app.get('/newComers', (req, res) => {
             $group: {
               _id: '$name',
               dates: { $push: '$date' },
-              counts: { $push: '$count' }
+              counts: { $push: '$count' },
+              categories: { $push: '$category' }
             }
           }
         ],
@@ -205,9 +207,10 @@ app.get('/newComers', (req, res) => {
                   item.dates.includes(formatDate(lastDate)) &&
                   !item.dates.includes(formatDate(previousDate))
               )
-              .map(({ _id, counts }) => ({
+              .map(({ _id, counts, categories }) => ({
                 name: _id,
-                count: counts.reduce((acc, val) => acc + val, 0)
+                count: counts.reduce((acc, val) => acc + val, 0),
+                category: categories[0]
               }))
               .sort((a, b) => b.count - a.count)
 
