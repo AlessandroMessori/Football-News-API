@@ -126,11 +126,18 @@ app.get('/mostGained', (req, res) => {
       const previousDate = new Date(date)
       previousDate.setDate(lastDate.getDate() - 1)
 
+      const query = {}
+
+      if (req.query.category !== undefined) {
+        query.category = { $regex: req.query.category }
+      }
+
       db.collection('Counters').aggregate(
         [
           {
             $match: {
-              date: { $in: [formatDate(lastDate), formatDate(previousDate)] }
+              date: { $in: [formatDate(lastDate), formatDate(previousDate)] },
+              ...query
             }
           },
           {
@@ -159,6 +166,11 @@ app.get('/mostGained', (req, res) => {
 
 app.get('/newComers', (req, res) => {
   const db = client.db('football-dashboard')
+  const query = {}
+
+  if (req.query.category !== undefined) {
+    query.category = { $regex: req.query.category }
+  }
   getLastDate(client)
     .then(date => {
       const lastDate = new Date(date)
@@ -169,7 +181,8 @@ app.get('/newComers', (req, res) => {
         [
           {
             $match: {
-              date: { $in: [formatDate(lastDate), formatDate(previousDate)] }
+              date: { $in: [formatDate(lastDate), formatDate(previousDate)] },
+              ...query
             }
           },
           {
