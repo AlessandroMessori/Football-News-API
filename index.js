@@ -16,6 +16,7 @@ const uri =
 
 // Create a new MongoClient
 const client = new MongoClient(uri)
+let db = null
 
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
@@ -35,7 +36,6 @@ app.get('/', (req, res) => {
 })
 
 app.get('/topics', (req, res) => {
-  const db = client.db('football-dashboard')
   const { name, category } = req.query
   const query = {}
 
@@ -61,7 +61,6 @@ app.get('/topics', (req, res) => {
 })
 
 app.get('/counters', (req, res) => {
-  const db = client.db('football-dashboard')
   db.collection('Counters')
     .find({
       ...req.query
@@ -78,7 +77,6 @@ app.get('/counters', (req, res) => {
 })
 
 app.get('/counters/:name', (req, res) => {
-  const db = client.db('football-dashboard')
   const { name } = req.params
 
   db.collection('Counters').aggregate(
@@ -119,7 +117,6 @@ app.get('/lastDate', (req, res) => {
 })
 
 app.get('/mostGained', (req, res) => {
-  const db = client.db('football-dashboard')
   getLastDate(client)
     .then(date => {
       const lastDate = new Date(date)
@@ -166,7 +163,6 @@ app.get('/mostGained', (req, res) => {
 })
 
 app.get('/newComers', (req, res) => {
-  const db = client.db('football-dashboard')
   const query = {}
 
   if (req.query.category !== undefined) {
@@ -237,6 +233,7 @@ async function run () {
 
     app.listen(port, () => {
       console.log('API Server listening on port ' + port)
+      db = client.db('football-dashboard')
     })
   } catch (e) {
     console.log(e)
